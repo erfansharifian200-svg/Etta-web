@@ -5,10 +5,8 @@ import time
 
 CHANNEL = os.getenv("EITAA_CHANNEL")
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_IDS = [
-    os.getenv("TELEGRAM_CHAT_ID"),      # اکانت اول
-    os.getenv("TELEGRAM_CHAT_ID_2")     # اکانت دوم
-]
+# همه چت‌آیدی‌ها رو با کاما از هم جدا کن
+CHAT_IDS = [cid.strip() for cid in os.getenv("TELEGRAM_CHAT_IDS", "").split(",") if cid.strip()]
 LIMIT = 10
 
 def get_latest_messages(channel):
@@ -60,23 +58,22 @@ def send_to_telegram(text, chat_id):
         return False
 
 if __name__ == "__main__":
-    if not all([CHANNEL, TOKEN]) or not any(CHAT_IDS):
+    if not all([CHANNEL, TOKEN]) or not CHAT_IDS:
         print("خطا: متغیرهای محیطی تنظیم نشده‌اند")
         exit(1)
     
     print(f"در حال دریافت پیام‌های کانال {CHANNEL}...")
+    print(f"تعداد اکانت‌ها: {len(CHAT_IDS)}")
     msgs = get_latest_messages(CHANNEL)
     
     if not msgs:
         for chat_id in CHAT_IDS:
-            if chat_id:
-                send_to_telegram("هیچ پیامی پیدا نشد.", chat_id)
+            send_to_telegram("هیچ پیامی پیدا نشد.", chat_id)
     else:
         for i, msg in enumerate(reversed(msgs), 1):
             for chat_id in CHAT_IDS:
-                if chat_id:
-                    success = send_to_telegram(msg, chat_id)
-                    print(f"پیام {i} به {chat_id} ارسال شد: {success}")
-            time.sleep(1.5)
+                success = send_to_telegram(msg, chat_id)
+                print(f"پیام {i} به {chat_id} ارسال شد: {success}")
+            time.sleep(1.2)
     
     print(f"تمام. تعداد پیام‌ها: {len(msgs)}")
