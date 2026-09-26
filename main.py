@@ -5,7 +5,10 @@ import time
 
 CHANNEL = os.getenv("EITAA_CHANNEL")
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+CHAT_IDS = [
+    os.getenv("TELEGRAM_CHAT_ID"),      # اکانت اول
+    os.getenv("TELEGRAM_CHAT_ID_2")     # اکانت دوم
+]
 LIMIT = 10
 
 def get_latest_messages(channel):
@@ -42,10 +45,10 @@ def get_latest_messages(channel):
     except Exception as e:
         return [f"❌ خطا در دریافت پیام‌ها:\n{str(e)}"]
 
-def send_to_telegram(text):
+def send_to_telegram(text, chat_id):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     data = {
-        "chat_id": CHAT_ID,
+        "chat_id": chat_id,
         "text": text[:4090],
         "disable_web_page_preview": False
     }
@@ -53,11 +56,11 @@ def send_to_telegram(text):
         response = requests.post(url, data=data, timeout=30)
         return response.status_code == 200
     except Exception as e:
-        print(f"خطا در ارسال به تلگرام: {e}")
+        print(f"خطا در ارسال به {chat_id}: {e}")
         return False
 
 if __name__ == "__main__":
-    if not all([CHANNEL, TOKEN, CHAT_ID]):
+    if not all([CHANNEL, TOKEN]) or not any(CHAT_IDS):
         print("خطا: متغیرهای محیطی تنظیم نشده‌اند")
         exit(1)
     
@@ -65,11 +68,15 @@ if __name__ == "__main__":
     msgs = get_latest_messages(CHANNEL)
     
     if not msgs:
-        send_to_telegram("هیچ پیامی پیدا نشد.")
+        for chat_id in CHAT_IDS:
+            if chat_id:
+                send_to_telegram("هیچ پیامی پیدا نشد.", chat_id)
     else:
         for i, msg in enumerate(reversed(msgs), 1):
-            success = send_to_telegram(msg)
-            print(f"پیام {i} ارسال شد: {success}")
+            for chat_id in CHAT_IDS:
+                if chat_id:
+                    success = send_to_telegram(msg, chat_id)
+                    print(f"پیام {i} به {chat_id} ارسال شد: {success}")
             time.sleep(1.5)
     
     print(f"تمام. تعداد پیام‌ها: {len(msgs)}")
